@@ -1,4 +1,3 @@
-
 ## Introduction
 
 Simple scalable pdf to png API built with django, dramatiq, rabbitmq, postgresql and docker.
@@ -70,7 +69,8 @@ docker exec <container-id> ./manage.py test api.tests.tests
 
 ### local
 
-Local running and testing can also be done, provided dependencies are met and test_settings.py is updated accordingly (database credentials)
+Local running and testing can also be done, provided dependencies are met and test_settings.py is updated accordingly (database credentials).
+**Important: When running tests locally, ensure RabbitMQ is running.**
 
 ```console
 python manage.py runserver --settings=api.tests.test_settings
