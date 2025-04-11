@@ -11,10 +11,12 @@ Testing can be improved and extended in the following ways:
 """
 
 import time
+import os
 
 from django.test import TestCase
 from django.test import Client
 from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from api.models import Document
 
@@ -31,6 +33,13 @@ class DocumentTestCase(TestCase):
         self.assertEqual(document.id, 1)
         self.assertEqual(document.status, Document.STATUS_PROCESSING)
         self.assertEqual(document.pdf_file, "")
+
+
+    def test_document_model_methods(self):
+        """Test model methods like get_png_filename"""
+        document = Document.objects.create()
+        png_filename = document.get_png_filename(1)
+        self.assertEqual(png_filename, f"document{document.id}_1.png")
 
 
 class RequestUploadTestCase(TestCase):
@@ -71,6 +80,15 @@ class RequestUploadTestCase(TestCase):
             response = client.post("http://localhost:8000/api/documents", {"file": f})
             self.assertEqual(response.status_code, 400)
 
+    def test_file_size_validation(self):
+        """Test file size validation directly on model"""
+        large_file_data = b'0' * (11 * 1024 * 1024)  # 11MB file
+        large_file = SimpleUploadedFile("large_file.pdf", large_file_data, content_type="application/pdf")
+        document = Document()
+        with self.assertRaises(Exception):
+            document.pdf_file = large_file
+            document.full_clean()
+
 
 class RequestGettingTestCase(TestCase):
 
@@ -106,4 +124,14 @@ class RequestGettingTestCase(TestCase):
             self.assertIn("n_pages", response.data)
             self.assertEqual(response.data["n_pages"], 1)
 
+
+    def test_png_file_exists(self):
+        """Check if PNG file is created after processing"""
+        with open(settings.TEST_FILES_PATH + "simple_file.pdf", "rb") as f:
+            response = client.post("http://localhost:8000/api/documents", {"file": f})
+            document_id = response.data["id"]
+            time.sleep(2)
+            png_filename = f"document{document_id}_1.png"
+            png_path = os.path.join(settings.MEDIA_ROOT, png_filename)
+            self.assertTrue(os.path.exists(png_path), f"PNG file {png_filename} not created")
 
